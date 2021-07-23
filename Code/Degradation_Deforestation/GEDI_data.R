@@ -8,6 +8,9 @@ library(rGEDI); library(ggplot2); library(rgdal); library(sf); library(raster); 
 library(tidyverse)
 #------------------------------------------------------------------------------------------------#
 
+#make some changes to the code here
+getwd()
+
 #------------------------------------------------------------------------------------------------#
 # location of your GEDI .h5 files
 outdir="C:/Users/elsao/Desktop/temp_files/GEDI"
