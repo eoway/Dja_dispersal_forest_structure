@@ -31,10 +31,14 @@ plot(hansen_tl)
 # ...
 # v_defor <- ...
 # v_degradation <- ...
-# radd <- ...
-# dim(radd)
-# if you only want the second band, suset the data as follows
-# radd_date <- radd[[2]] # if this doesn't work, try: radd[2]
+
+
+radd <- brick("RADD_Alert/RADD_NASA_Biodiv_clipped.tif")
+#radd <- raster("RADD.tif")
+radd_date <- radd$Date
+radd_date <- radd[[2]]
+str(radd_date) #use structure function to examine the data type
+
 
 #4. Convert each into a dataframe
 hansen_df <- as.data.frame(hansen_tl, xy=T)
