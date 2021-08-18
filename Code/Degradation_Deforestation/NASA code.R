@@ -13,13 +13,14 @@ install.packages("dplyr")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("devtools")
+install.packages("benford")
 library(raster)
 library(rgdal)
 library(dplyr)
 library(tidyverse)
 library(devtools)
 library(ggplot2)
-
+library(benford)
 
 ? %>% 
 
@@ -27,11 +28,20 @@ library(tidyverse)
 
 examp_df <- as.data.frame(cbind(c(1,2,3,4,5),c(2000,2000,2001,2003,2003)))
 
-colnames(examp_df) <- c("X","year")
+
+colnames(degradation_sub) <- c("X","year")
 
 
-sum_df <- examp_df  %>% group_by(year) %>% summarize(n_pixels_per_year=n(),
-                                                    defor_km2 = n_pixels_per_year*(900/1000))
+sum_df <- examp_df  %>% group_by(year) %>% summarize(n_pixels=n(),
+                                                    defor_km2 = n_pixels*(900/1000))
+
+grouped_Deforestation  <- deforestation_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
+                                                    defor_km2 = n_pixels*(900/1000))
+
+
+grouped_Degradation  <- degradation_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
+                                                                              defor_km2 = n_pixels*(900/1000))
+
 ggplot2
 ?read.csv
 #2. Set working directory
@@ -67,9 +77,9 @@ str(radd_date) #use structure function to examine the data type
 
 
 #4. Convert each into a dataframe
-hansen_df <- as.data.frame(hansen_tl)
-str(hansen_df)
-dim(hansen_df)
+radd_df <- as.data.frame(radd_date)
+str(radd_df)
+dim(radd_df)
 
 V_deforestation <- raster("clipped deforestation year.tif")
 deforestation_df <- as.data.frame(V_deforestation)
@@ -94,16 +104,20 @@ head(deforestation_df) # shows you the top several rows of the data frame
 hansen_df_sub <- subset(hansen_df, clipped_hansen_lossyear != 0) # != means not equal to; == means equal to
 V_deforestation_sub <- subset(deforestation_df, clipped_deforestation_year != 0) # != means not equal to; == means equal to
 V_degradation_sub <- subset(degradation_df, clipped_degredation_year != 0) 
+radd_df_sub <- subset(radd_df, Date != 0) 
+str(radd_df_sub)
+dim(radd_df_sub)
 
 summary(hansen_df_sub)
 dim(hansen_df_sub)
 str(hansen_df_sub)
 
-write.csv(new_df_samp,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/new_df_samp.csv")
+write.csv(hansen_df_sub,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/hansen.csv")
 write.csv(V_deforestation_sub,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/v_deforestation.csv")
 write.csv(V_degradation_sub,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/v_degradation.csv")
+write.csv(radd_df_sub,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/radd_df_sub.csv")
 
-hansen_df_sub <- read.csv("hansen.csv")
+grouped_Deforestation <- read.csv("hansen.csv")
 
 # dim(hansen_df_sub)
 dim(hansen_df_sub)
@@ -111,6 +125,9 @@ str(hansen_df_sub)
 # head(hansen_df_sub)
 head(hansen_df_sub)
 
+
+extract.digits(radd_df_sub, number.of.digits = 2, 
+               sign="positive", second.order = FALSE, discrete=TRUE, round=3)
 
 deforestation_sub <- read.csv("v_deforestation.csv")
 degradation_sub <- read.csv("v_degradation.csv")
@@ -134,15 +151,22 @@ deforestation_sub$Year <-deforestation_sub$clipped_deforestation_year
 new_df_samp$clipped_hansen_lossyear <- NULL
 deforestation_sub$X <- NULL
 
-deforestation_sub$Dataset      <- "vancutsem" 
+grouped_Degradation$Dataset      <- "Vancutsem" 
 
 # When the code is functioning, you can replace the new_df_samp dataframe with new_df 
 
-write.csv(deforestation_sub,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/deforestation_sub.csv")
+write.csv(grouped_Degradation,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Degradation_final.csv")
 
 library(ggplot2)
-hansen<- read.csv("hansen_df_sub.csv")
-ggplot(hansen, aes(Year, Deforestation_total)) + geom_bar(stat = "identity")
+hansen<- read.csv("Hansen_final.csv")
+ggplot(hansen, aes(year, defor_km2)) + geom_bar(stat = "identity")
+
+v_def<- read.csv("Deforestation_final.csv")
+ggplot(v_def, aes(year, defor_km2)) + geom_bar(stat = "identity")
+
+v_deg<- read.csv("Degradation_final.csv")
+ggplot(v_deg, aes(year, defor_km2)) + geom_bar(stat = "identity")
+
 
 # convert all the other datasets to data frames
 
@@ -151,13 +175,6 @@ ggplot(hansen, aes(Year, Deforestation_total)) + geom_bar(stat = "identity")
 # knowing that each observation = 1 30x30m pixel
 # go from new_df_samp to a new dataframe that has the columns described above
 
-
-
-# just make a barchart with one of the datasets
-# the dataset will require 3 columns
-# column 1: Year
-# column 2: Deforestation_total
-# column 3: Dataset 
 
 
 ## END GOAL ##
