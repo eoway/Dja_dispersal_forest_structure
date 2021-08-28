@@ -106,19 +106,19 @@ str(degradation_sub)
 
 
 #Use the line of code below to transform the csv file
-
+colnames(hansen_df_sub) <- c("X","year")
+colnames(deforestation_sub) <- c("X","year")
 colnames(degradation_sub) <- c("X","year")
 
-
 grouped_Hansen <- hansen_df_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
-                                                                  defor_km2 = n_pixels*(900/1000))
+                                                                  defor_km2 = n_pixels*(0.0009))
 
 grouped_Deforestation  <- deforestation_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
-                                                                              defor_km2 = n_pixels*(900/1000))
+                                                                              defor_km2 = n_pixels*(0.0009))
 
 
 grouped_Degradation  <- degradation_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
-                                                                          defor_km2 = n_pixels*(900/1000))
+                                                                          defor_km2 = n_pixels*(0.0009))
 
 #use these lines of code and replace variables to remove, rename, or add columns as needed
 deforestation_sub$clipped_deforestation_year<- NULL
@@ -127,6 +127,8 @@ deforestation_sub$Year <-deforestation_sub$clipped_deforestation_year
 grouped_Degradation$Dataset      <- "Vancutsem" 
 
 #Use this line of code to make final csv files, which are used for plotting in the next step
+write.csv(grouped_Hansen,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Hansen_final.csv")
+write.csv(grouped_Deforestation,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Deforestation_final.csv")
 write.csv(grouped_Degradation,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Degradation_final.csv")
 
 #Code for barcharts
