@@ -27,7 +27,7 @@ library(benford)
 setwd("//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products")
 
 # set memory limit
-memory.limit(size=4000000)
+memory.limit(size=40000000)
 
 
 #3. Load all Deforestation and Degradation products
@@ -41,18 +41,15 @@ plot(hansen_tl)
 ?as.data.frame
 ?raster
 ?str
+?dim
 
-radd <- brick("RADD_NASA_Biodiv_clipped.tif")
-#radd <- raster("RADD.tif")
-#radd_date <- radd$Date
-radd_date <- radd[[2]]
-str(radd) #use structure function to examine the data type
-
-
+str(new_radd) #use structure function to examine the data type
+new_radd <- raster("RADD_resample_30m.tif")
+radd_date <- new_radd[[2]]
 #4. Convert each into a dataframe
-radd_df <- as.data.frame(radd_date)
+radd_df <- as.data.frame(new_radd)
 str(radd_df)
-dim(radd_date)
+dim(new_radd)
 
 V_deforestation <- raster("clipped deforestation year.tif")
 deforestation_df <- as.data.frame(V_deforestation)
@@ -77,7 +74,7 @@ head(deforestation_df) # shows you the top several rows of the data frame
 hansen_df_sub <- subset(hansen_df, clipped_hansen_lossyear != 0) # != means not equal to; == means equal to
 V_deforestation_sub <- subset(deforestation_df, clipped_deforestation_year != 0) # != means not equal to; == means equal to
 V_degradation_sub <- subset(degradation_df, clipped_degredation_year != 0) 
-radd_df_sub <- subset(radd_df, Date != 0) 
+radd_df_sub <- subset(radd_df, RADD_resample_30m != 0) 
 str(radd_df_sub)
 dim(radd_df_sub)
 
@@ -100,15 +97,19 @@ head(hansen_df_sub)
 hansen_df_sub <- read.csv("hansen.csv")
 deforestation_sub <- read.csv("v_deforestation.csv")
 degradation_sub <- read.csv("v_degradation.csv")
+radd_df_sub <- read.csv("radd_df_sub.csv")
+
 
 str(deforestation_sub)
 str(degradation_sub)
 
+radd_df_sub$year = substr(radd_df_sub$RADD_resample_30m,1,2)
 
 #Use the line of code below to transform the csv file
 colnames(hansen_df_sub) <- c("X","year")
 colnames(deforestation_sub) <- c("X","year")
 colnames(degradation_sub) <- c("X","year")
+colnames(radd_df_sub) <- c("X","Date","year")
 
 grouped_Hansen <- hansen_df_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
                                                                   defor_km2 = n_pixels*(0.0009))
@@ -120,18 +121,33 @@ grouped_Deforestation  <- deforestation_sub  %>% group_by(year) %>% summarize(n_
 grouped_Degradation  <- degradation_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
                                                                           defor_km2 = n_pixels*(0.0009))
 
+grouped_RADD  <- radd_df_sub  %>% group_by(year) %>% summarize(n_pixels=n(),
+                                                                          defor_km2 = n_pixels*(0.0009))
+
 #use these lines of code and replace variables to remove, rename, or add columns as needed
 deforestation_sub$clipped_deforestation_year<- NULL
-deforestation_sub$X <- NULL
+v_deg$Dataset <- NULL
 deforestation_sub$Year <-deforestation_sub$clipped_deforestation_year 
-grouped_Degradation$Dataset      <- "Vancutsem" 
+
+grouped_RADD$source      <- "RADD" 
+grouped_RADD$type      <- "disturbance"
+hansen$source      <- "GFC" 
+hansen$type      <- "tree_loss" 
+v_def$source      <- "JRC" 
+v_def$type      <- "deforestation" 
+v_deg$source      <- "JRC" 
+v_deg$type      <- "degradation" 
+
+
 
 #Use this line of code to make final csv files, which are used for plotting in the next step
-write.csv(grouped_Hansen,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Hansen_final.csv")
-write.csv(grouped_Deforestation,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Deforestation_final.csv")
-write.csv(grouped_Degradation,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Degradation_final.csv")
+write.csv(hansen,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Hansen_final.csv")
+write.csv(v_def,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Deforestation_final.csv")
+write.csv(v_deg,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/Degradation_final.csv")
+write.csv(grouped_RADD,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/RADD_final.csv")
+write.csv(combined_df,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/NASA products/combined_df.csv")
 
-#Code for barcharts
+#Code for individual barcharts
 library(ggplot2)
 hansen<- read.csv("Hansen_final.csv")
 ggplot(hansen, aes(year, defor_km2)) + geom_bar(stat = "identity")
@@ -142,20 +158,18 @@ ggplot(v_def, aes(year, defor_km2)) + geom_bar(stat = "identity")
 v_deg<- read.csv("Degradation_final.csv")
 ggplot(v_deg, aes(year, defor_km2)) + geom_bar(stat = "identity")
 
-# alternative way to do barplot
-barplot(height=data$value, names=data$name, 
-        col=rgb(0.8,0.1,0.1,0.6),
-        xlab="categories", 
-        ylab="values", 
-        main="My title", 
-        ylim=c(0,40)
-)
+
 ## END GOAL ##
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 # create 'grouped barchart' with total area of deforestation on the y-axis and year on the x-axis
 # the groups (different color bars) will be the 3 different datasets
 
 
-extract.digits(radd_df_sub, number.of.digits = 2, 
-               sign="positive", second.order = FALSE, discrete=TRUE, round=3)
+combined_df <- rbind(v_deg,v_def,hansen,grouped_RADD) 
 
+combined <- read.csv("combined_df.csv")
+ggplot(combined, aes(fill=type, y=defor_km2, x=year)) + 
+  geom_bar(position="dodge", stat="identity")
+
+
+scale_fill_manual(data, values=c("red","green","blue","yellow"), labels=c("Deforestation", "Degradation", "Disturbance", "Tree loss"))
