@@ -168,8 +168,12 @@ ggplot(v_deg, aes(year, defor_km2)) + geom_bar(stat = "identity")
 combined_df <- rbind(v_deg,v_def,hansen,grouped_RADD) 
 
 combined <- read.csv("combined_df.csv")
-ggplot(combined, aes(fill=type, y=defor_km2, x=year)) + 
-  geom_bar(position="dodge", stat="identity")
 
+ggplot(combined, aes(fill=type, y=defor_km2, x=year)) + list(
+  geom_bar(position="dodge", stat="identity", width = 1.0),
+  theme(legend.position = "bottom", legend.title = element_blank()),
+  scale_fill_manual(values=c("#FF9999","#CC6666","#9999CC","#66CC99"), labels=c("JRC Deforestation", "JRC Degradation", "RADD Disturbance", "GFC Tree loss")), 
+  labs(x="Year", y="Change in Tree Cover (km2)"),
+  NULL
+)
 
-scale_fill_manual(data, values=c("red","green","blue","yellow"), labels=c("Deforestation", "Degradation", "Disturbance", "Tree loss"))
