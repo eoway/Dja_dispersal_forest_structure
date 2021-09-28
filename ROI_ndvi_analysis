@@ -1,0 +1,26 @@
+library(raster)
+library(rgdal)
+library(tidyverse)
+
+ndvi1_RE <- raster("Downloads/elsa_lab/R/2013_08_27_RE_ndvi.tif")
+shape_dat <- readOGR(dsn="Downloads/elsa_lab/R/merged_rapideye_ROI_shapefiles-selected", layer="merged_rapideye_ROI")
+head(shape_dat)
+summary(shape_dat)
+dim(shape_dat)
+
+# this next line doesn't make sense anymore with only 1 band for ndvi1_RE, tried to import SR file instead to use but received errors: 
+    Error in guess_types_(datasource, tokenizer, locale, n = guess_max) : embedded nul in string: '\0\006\xc2\xe0l\0027\003`\b\xd9#\xb8j\xe1\xcc b\xac#\xa2\xfe'
+    In addition: Warning message: Duplicated column names deduplicated: '3' => '3_1' [3] 
+    Error in View : object 'X3340504_2013_08_27_RE3_3A_Analytic_SR' not found
+
+brick(ndvi1_RE)
+?brick
+plot(ndvi1_RE)
+plot(shape_dat, add=T)
+raster::extract(ndvi1_RE, shape_dat)
+?extract
+
+# not sure how to convert list to data frame, tried: df <- data.frame(matrix(unlist(ndvi1_RE), nrow=21, byrow=TRUE)) but this did not work
+
+# use dplyr::summarize to calculate the mean ndvi for each crown
+#plot mean NDVI (y) ~ time (x) for each crown
