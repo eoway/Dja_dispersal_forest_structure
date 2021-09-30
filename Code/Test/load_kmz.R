@@ -1,5 +1,7 @@
-#------------------------------------------------------------------------------------------------#
-setwd("G:/My Drive/GEDI/Southern_Sierra") # Google Drive
+
+#Test change to file
+# adding
+
 #------------------------------------------------------------------------------------------------#
 # Set output dir for downloading and reading files
 # outdir="G:/My Drive/GEDI/Southern_Sierra"
