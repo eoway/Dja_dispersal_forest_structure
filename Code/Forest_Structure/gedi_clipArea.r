@@ -9,24 +9,33 @@ library(rgdal)
 library(sf)
 
 ### shapefile representing the ROI
-shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/DjaFaunalReserveOSM.shp"
-#shp.f<-"C:/Users/aferraz/Documents/GIS DataBase/Africa/congoTropical/congoRainforest_enclaves_dissolve_buffer_2degrees_clip.shp"
+#shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/DjaFaunalReserveOSM.shp"
+#shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_monodominant.shp"
+#shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_swamp_forest.shp"
+shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_mixed_spp_IRD.shp"
+
+# use Dja_swamp_forest.shp
+# use Dja_monodominant.shp
+# use Dja_mixed_spp_IRD.shp
+
 shp<-readOGR(dsn=shp.f,layer=basename(file_path_sans_ext(shp.f)))
 # #Study area boundary box coordinates
 # ul_lat<- shp@bbox[2,2] #ymax
 # lr_lat<- shp@bbox[2,1] #ymin
-# ul_lon<- shp@bbox[1,1]    #xmin
+# ul_lon<- shp@bbox[1,1] #xmin
 # lr_lon<- shp@bbox[1,2] #xmax
 
 # directory with GEDI .h5 files and associated shapefile
 download.dir="G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots"
 # directory to save the clipped GEDI .h5 shots
-out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_Reserve_Shots"
+#out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_Reserve_Shots"
+#out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_monodominant_shots"
+#out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_swamp_forest_shots"
+out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_mixed_spp_IRD_shots"
 
 #### find GEDI .h5 files and associated shapefile
-files.GEDI02_A<-list.files(download.dir,pattern="*GEDI01_B_2*",recursive = T,full.names=T);files.GEDI02_A<-files.GEDI01_B[grepl('.h5$',files.GEDI02_A)]
-#files.GEDI02_A<-list.files(download.dir,pattern="*GEDI02_A_2*",recursive = T,full.names=T);files.GEDI02_A<-files.GEDI02_A[grepl('.h5$',files.GEDI02_A)]
-#files.GEDI02_A<-list.files(download.dir,pattern="*GEDI02_B_2*",recursive = T,full.names=T);files.GEDI02_A<-files.GEDI02_B[grepl('.h5$',files.GEDI02_A)]
+#files.GEDI01_B<-list.files(download.dir,pattern="*GEDI01_B_2*",recursive = T,full.names=T);files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
+files.GEDI02_A<-list.files(download.dir,pattern="*GEDI02_A_2*",recursive = T,full.names=T);files.GEDI02_A<-files.GEDI02_A[grepl('.h5$',files.GEDI02_A)]
 files.shp<-list.files(download.dir,pattern="*.shp*",recursive = T,full.names=T);files.shp<-files.shp[grepl('.shp$',files.shp)]
 
 for (ii in 1:length(files.GEDI02_A))
