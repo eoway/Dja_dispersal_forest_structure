@@ -19,16 +19,14 @@ library(benford)
 memory.limit(size=40000000)
 
 
-
 #setwd("C:/Users/ForestsGlobalChange1/Desktop/karen files")
 setwd("G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Degradation_Deforestation_Products") #EO 
 
 #------------------------------------------------------------------------------------------------#
 # Load data
 #------------------------------------------------------------------------------------------------#
-bound <- readOGR(dsn="G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/GIS/Dja focus area", layer="Dja_300km_buffer_rectangle_land")
-plot(bound)
-
+# bound <- readOGR(dsn="G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/GIS/Study area", layer="Dja_300km_buffer_rectangle_land")
+# plot(bound)
 GFC <- raster("clipped hansen lossyear.tif")
 
 JRC_deforestation <- raster("clipped deforestation year.tif")
@@ -65,11 +63,11 @@ projection(RADD)
 # extent(RADD_e)
 
 # create point shapefile from GFC data
-grid <- rasterToPoints(GFC) # if this too slow or gives a memory limit error - use ArcMap (see tool from Sumalika)
-
+grid <- rasterToPoints(GFC, spatial = T) # if this too slow or gives a memory limit error - use ArcMap (see tool from Sumalika)
 # save grid shapefile and use readOGR next time rather than re-running rasterToPoints()
 writeOGR(grid, getwd(), "GFC_points", driver="ESRI Shapefile")
-readOGR(dsn=getwd(), layer="GFC_points")
+
+grid <- readOGR(dsn=getwd(), layer="GFC_points")
 
 # extract data from raster data for each grid point location (will output as shapefile) 
 GFC_e               <- extract(GFC, grid)
