@@ -10,9 +10,9 @@ library(sf)
 
 ### shapefile representing the ROI
 #shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/DjaFaunalReserveOSM.shp"
-#shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_monodominant.shp"
+shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_monodominant.shp"
 #shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_swamp_forest.shp"
-shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_mixed_spp_IRD.shp"
+#shp.f<-"G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots/Dja_mixed_spp_IRD.shp"
 
 # use Dja_swamp_forest.shp
 # use Dja_monodominant.shp
@@ -27,19 +27,64 @@ shp<-readOGR(dsn=shp.f,layer=basename(file_path_sans_ext(shp.f)))
 
 # directory with GEDI .h5 files and associated shapefile
 download.dir="G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Forest_Structure/Dja_reserve_focus_area_shots/Shots"
+
 # directory to save the clipped GEDI .h5 shots
 #out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_Reserve_Shots"
 #out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_monodominant_shots"
 #out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_swamp_forest_shots"
-out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_mixed_spp_IRD_shots"
+#out.dir="C:/Users/elsa-admin/Desktop/temp_files/Dja_mixed_spp_IRD_shots"
+out.dir="D:/Dja_mixed_spp_IRD_shots"
 
-#### find GEDI .h5 files and associated shapefile
-#files.GEDI01_B<-list.files(download.dir,pattern="*GEDI01_B_2*",recursive = T,full.names=T);files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
+
+#### find GEDI L1B .h5 files and associated shapefile
+files.GEDI01_B<-list.files(download.dir,pattern="*GEDI01_B_2*",recursive = T,full.names=T);files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
+files.shp<-list.files(download.dir,pattern="*.shp*",recursive = T,full.names=T);files.shp<-files.shp[grepl('.shp$',files.shp)]
+
+for (ii in 1:length(files.GEDI01_B)){
+  
+  output.name=paste(out.dir,"/",basename(file_path_sans_ext(files.GEDI01_B[ii])),".h5",sep="")
+  
+  if (!file.exists(output.name)) # check if exist
+  {
+    print(paste("processing: ",output.name ))
+    gedilevel1b<-readLevel1B(level1Bpath = files.GEDI01_B[ii]) # Reading GEDI data
+    files.shp.1b<-files.shp[grep(basename(file_path_sans_ext(files.GEDI01_B[ii])),files.shp)]
+    
+    if (length(files.shp.1b)!=1){stop("the shapefile for the h5 does not exist: please run gedi_read_h5_write_shp.r")}
+    shp.orbit<-readOGR(dsn=files.shp.1b,layer=basename(file_path_sans_ext(files.shp.1b)))
+    
+    out <- st_intersects(st_as_sf(shp.orbit), st_as_sf(shp),sparse = FALSE)
+    output.name=paste(out.dir,"/",basename(file_path_sans_ext(files.GEDI01_B[ii])),".h5",sep="")
+    
+    if (sum(out)>0) ##### check if GEDI shots covers the ROI
+    {
+      print(paste("clipping:", output.name))
+      g1b.clip <-clipLevel2AGeometry(gedilevel1b,shp,output.name)
+      
+      close(gedilevel1b)
+      for (i in 1:length(g1b.clip))
+      {
+        close(g1b.clip[[i]])
+      }
+      rm (gedilevel1b);rm(g1b.clip)
+    }else{print("existing file or does not cover the ROI")}
+    
+    
+    ####### change name to remove "_" added at the end of the name of the clipped GEDI
+    change.name<-list.files(out.dir,pattern="*_.h5$",recursive = T,full.names=T)
+    for (j in change.name)
+    {
+      file.rename(j,paste0(substr(change.name,1,nchar(change.name)-4),".h5"))
+    }
+  }
+}
+
+
+#### find GEDI L2A .h5 files and associated shapefile
 files.GEDI02_A<-list.files(download.dir,pattern="*GEDI02_A_2*",recursive = T,full.names=T);files.GEDI02_A<-files.GEDI02_A[grepl('.h5$',files.GEDI02_A)]
 files.shp<-list.files(download.dir,pattern="*.shp*",recursive = T,full.names=T);files.shp<-files.shp[grepl('.shp$',files.shp)]
 
-for (ii in 1:length(files.GEDI02_A))
-{
+for (ii in 1:length(files.GEDI02_A)){
   
   output.name=paste(out.dir,"/",basename(file_path_sans_ext(files.GEDI02_A[ii])),".h5",sep="")
   
