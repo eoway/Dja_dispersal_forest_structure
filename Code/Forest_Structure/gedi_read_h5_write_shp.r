@@ -8,13 +8,14 @@ download.dir="G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/R
 
 
 files.GEDI01_B<-list.files(download.dir,pattern="*GEDI01_B*",recursive = F,full.names=T);files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
+#files.GEDI01_B <- files.GEDI01_B[1]
 
 for (ii in 1:length(files.GEDI01_B)){
   out.shp.f<-paste0(file_path_sans_ext(files.GEDI01_B[ii]),".shp")
   if (!file.exists(out.shp.f))
   {
     print(paste0("processing: ",out.shp.f))
-    df<-data.frame(lat_lowestmode=numeric(0),lon_lowestmode=numeric(0),elev_lowestmode=numeric(0),rh98=numeric(0),shot_number=character(),quality_flag=numeric(0),sensitivity=numeric(0),beamId=character(0),beamType=character(0),file=character(0))
+    df<-data.frame(latitude_lastbin=numeric(0),longitude_lastbin=numeric(0),elevation_lastbin=numeric(0),shot_number=character(0),degrade=numeric(0),beamId=character(0),beamType=character(0),file=character(0))
     beam_<-c('BEAM0000','BEAM0001','BEAM0010','BEAM0011','BEAM0101','BEAM0110','BEAM1000','BEAM1011')
     tbeam_<-c('coverage','coverage','coverage','coverage','full','full','full','full')
     
@@ -33,6 +34,7 @@ for (ii in 1:length(files.GEDI01_B)){
     {
       GEDI01_B<-h5read(GEDI01_B.o,j,bit64conversion='bit64')
       GEDI01_B_geo <- GEDI01_B$geolocation
+      
       latitude_lastbin<-GEDI01_B_geo$latitude_lastbin
       longitude_lastbin<-GEDI01_B_geo$longitude_lastbin
       elevation_lastbin=GEDI01_B_geo$elevation_lastbin
@@ -41,6 +43,7 @@ for (ii in 1:length(files.GEDI01_B)){
       beamId=rep(j,length(latitude_lastbin))
       beamType=rep(df.beam[df.beam$group==j,]$tbeam_,length(latitude_lastbin))
       df<-rbind(df,data.frame(latitude_lastbin=latitude_lastbin,longitude_lastbin=longitude_lastbin,elevation_lastbin=elevation_lastbin,shot_number=shot_number,degrade=degrade,beamId=beamId,beamType=beamType))
+      
       rm(GEDI01_B); rm(GEDI01_B_geo)
     }
     h5closeAll()
