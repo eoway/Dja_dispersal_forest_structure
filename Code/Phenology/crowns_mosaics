@@ -1,1 +1,24 @@
+setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation")
+getwd()
 
+library(raster)
+library(rgdal)
+library(tidyverse)
+
+# load crown data
+
+crowns <- readOGR(dsn="delineated_crowns", layer="delineated_crowns")
+
+# load mosaics
+
+mosaic_2020_5_27 <- raster("mosaics/2020-05-27_1003_mosaic.tif")
+mosaic_2020_9_4 <- raster("mosaics/2020-09-04_1004_mosaic.tif")
+mosaic_2021_1_21 <- raster("mosaics/2021-01-21_2406_mosaic.tif")
+
+# plot data
+plot(mosaic_2020_5_27)
+plot(crowns, add=T)
+plot(mosaic_2020_9_4)
+plot(crowns, add=T)
+plot(mosaic_2021_1_21)
+plot(crowns, add=T)
