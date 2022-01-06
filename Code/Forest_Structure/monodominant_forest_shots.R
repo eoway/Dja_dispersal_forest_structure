@@ -16,7 +16,7 @@ files.GEDI02_A<-files.GEDI02_A[grepl('.h5$',files.GEDI02_A)]
 files.GEDI01_B <- list.files(download.dir,pattern="*GEDI01_B*",recursive = F,full.names=T)
 files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
 
-WREF_bb <- c(45.8977, 45.7792, -122.0983, -121.7786)
+#WREF_bb <- c(45.8977, 45.7792, -122.0983, -121.7786)
 
 listof1B <- list()
 for (b in 1:length(files.GEDI01_B)) {
