@@ -12,14 +12,7 @@ setwd("G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_S
 #?brick
 #?raster
 
-#------------------------------------------------------------------------------------------------#
-# Load data 
-#------------------------------------------------------------------------------------------------#
-# ndvi1_RE <- raster("2013_08_27_RE_ndvi.tif")
-# shape_dat <- readOGR(dsn="merged_rapideye_ROI_shapefiles-selected", layer="merged_rapideye_ROI")
-ndvi1_RE <- raster("2013_08_27_RE_ndvi.tif")
-head(ndvi1_RE)
-dim(ndvi1_RE)
+# edits here
 
 shape_dat <- readOGR(dsn=getwd(), layer="merged_rapideye_ROI")
 head(shape_dat)
@@ -33,6 +26,8 @@ dim(shape_dat)
 plot(shape_dat)
 plot(ndvi1_RE, add=T)
 plot(shape_dat, add=T)
+
+plot(something)
 
 plot(ndvi1_RE)
 plot(shape_dat, add=T)
