@@ -5,21 +5,91 @@ library(raster)
 library(rgdal)
 library(tidyverse)
 
+
 # load crown data
 
 crowns <- readOGR(dsn="delineated_crowns", layer="delineated_crowns")
 
-# load mosaics
 
-mosaic_2020_5_27 <- raster("mosaics/2020-05-27_1003_mosaic.tif")
-mosaic_2020_9_4 <- raster("mosaics/2020-09-04_1004_mosaic.tif")
-mosaic_2021_1_21 <- raster("mosaics/2021-01-21_2406_mosaic.tif")
+# load mosaic
+
+mosaic_2020_5_27 <- brick("mosaics/2020-05-27_1003_mosaic.tif")
+
 
 # plot data
 
 plot(mosaic_2020_5_27)
-plot(crowns, add=T)
-plot(mosaic_2020_9_4)
-plot(crowns, add=T)
-plot(mosaic_2021_1_21)
-plot(crowns, add=T)
+
+plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", add=T)
+
+warnings()
+
+
+# see crs
+
+crs(crowns)
+
+crs(mosaic_2020_5_27)
+
+
+# set crowns scr to be same as mosaic
+
+new_crs <- crs(mosaic_2020_5_27)
+
+crownsWGS <- spTransform(crowns, CRS=new_crs)
+
+
+# plot 
+
+plot(crownsWGS, col="black")
+
+plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", add=T)
+
+plot(crownsWGS, col="black", add=T)
+
+
+# examine data
+
+res(mosaic_2020_5_27)
+
+head(crownsWGS[[1]])
+
+dim(crownsWGS)
+
+
+# extract crown info
+
+mosaic_crowns <- raster::extract(mosaic_2020_5_27, crowns)
+
+
+# examine data
+
+head(mosaic_crowns)
+
+dim(mosaic_crowns)
+
+length(mosaic_crowns)
+
+
+#set IDs for crowns
+
+crowns$ID <- seq(1:length(crowns$Point_FID))
+
+
+# convert to data frame
+
+mosaic_crowns_df <- data.frame(lapply(mosaic_crowns, "length<-", max(lengths(mosaic_crowns))))
+
+head(mosaic_crowns_df)
+
+dim(mosaic_crowns_df)
+
+ncol(mosaic_crowns_df)
+
+
+# combine into one data frame
+
+ggplot(mosaic_crowns, aes(x,y))+
+  geom_line()
+
+# summarize mean value
