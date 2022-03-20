@@ -2,9 +2,14 @@ setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/ruksan_data")
 getwd()
 
 library(ggplot2)
-library(readxl)
 library(stringr)
 library(dplyr)
+library(readxl)
+library(tidyverse)
+library(writexl)
+library(openxlsx)
+library(readr)
+library(readxl)
 
 merged_dat = read_xlsx("merged_data/Pheno_Bouamir_Tree_merged.xlsx")
 table(merged_dat$Baka_name)
@@ -17,7 +22,9 @@ Bosiko$year <- str_sub(Bosiko$date_census,1,4)
 Bosiko$month <- str_sub(Bosiko$date_census,6,7)
 
 # young leaves
-yl_Bosiko_sum_dat <- Bosiko %>% group_by(month, year) %>% summarize(leaves_young_mean = mean(leaves_young, na.rm=T))
+yl_Bosiko_sum_dat <- Bosiko %>% group_by(month, year) %>% 
+  summarize(leaves_young_mean = mean(leaves_young, na.rm=T))
+
 yl_Bosiko_sum_dat
 
 
@@ -25,7 +32,11 @@ yl_Bosiko_sum_dat
 # import total weather data
 weather_total <- read_csv("24Oct2017-17Fev2022_Bouamir_Weather_data.csv")
 
-weather_total <- weather_total[,c(1,2,3,4,5,6)]
+head(weather_total)
+
+weather_total <- weather_total[,c(1:6)]
+
+head(weather_total)
 
 # create year column
 weather_total$year <- str_sub(weather_total$date,1,4)
@@ -38,29 +49,68 @@ weather_total$month <- str_sub(weather_total$date,6,7)
 head(weather_total)
 
 # subset to 2020 and 2021
-subset_2020 <- subset(weather_total, year==2020)
 
-subset_2021 <- subset(weather_total, year==2021)
+subset_dat <- subset(weather_total, year %in% c(2020,2021))
+
+table(subset_dat$year)
 
 
-# find mean monthly rainfall for 2020 and 2021
-mean_2020 <- subset_2020 %>% group_by(month, year) %>% 
-  summarize(mean_monthly_2020 = mean(rain_mm, na.rm=T))
 
-mean_2021 <- subset_2021 %>% group_by(month, year) %>% 
-  summarize(mean_monthly_2021 = mean(rain_mm, na.rm=T))
+# find mean monthly rainfall for 2020 and 2021 and total
+mean_dat <- weather_total %>% group_by(month, year) %>% 
+  summarize(mean_monthly = mean(rain_mm, na.rm=T))
 
+head(mean_dat)
+
+subset_dat <- subset(mean_dat, year %in% c(2020,2021))
+
+table(subset_dat$year)
+
+head(mean_dat)
+
+mean_monthly_dat <- mean_dat %>% group_by(month) %>% 
+  summarize(mean_annual = mean(mean_monthly, na.rm=T))
+
+
+head(mean_monthly_dat)
+mean_monthly_dat$year <- rep("2017-2022", length(mean_monthly_dat$month))
+head(mean_monthly_dat)
+
+?geom_smooth
+
+mean_monthly_dat
 
 # plot young leaf change with weather data
-ggplot(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean*3.333, x=month)) +
-  geom_bar(position="dodge", stat="identity") + 
-  geom_line(data=mean_2020, aes(x=month, y=mean_monthly_2020, group =1))+ 
-  geom_line(linetype = "dashed", data=mean_2021, aes(x=month, y=mean_monthly_2021, group =1))+ 
-  scale_y_continuous("rainfall_mm", sec.axis = sec_axis(~ . *0.3, name = "leaves_young_mean"))+
-  labs(title="Young Leaf Change over Time in Etenge Tree Species")
+
+?scale_y_continuous
 
 
 
+ggplot() +
+geom_bar(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean, x=month), 
+         position="dodge", stat="identity") + 
+geom_line(data=subset_dat, aes(x=month, y=mean_monthly, group = year, linetype = year))+ 
+geom_line(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year), color = "red")+
+geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
+scale_y_continuous("leaves_young_mean", sec.axis = sec_axis(~ . *1, name = "rainfall_mm"))+
+labs(title="Young Leaf Change over Time in Bosiko Tree Species")
+
+
+
+# ggplot() +
+ # geom_bar(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean*3.333, x=month), 
+  #         position="dodge", stat="identity") + 
+#  geom_line(data=subset_dat, aes(x=month, y=mean_monthly, group = year, linetype = year))+ 
+ # geom_line(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year), color = "red")+
+  #geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
+  # geom_line(linetype = "dashed", data=mean_2021, aes(x=month, y=mean_monthly_2021, group =1))+ 
+  #scale_y_continuous("rainfall_mm", sec.axis = sec_axis(~ . *0.3, name = "leaves_young_mean"))+
+  #labs(title="Young Leaf Change over Time in Etenge Tree Species")
+
+ggplot(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year)) +
+  geom_line(color="red") + geom_smooth(linetype = 0, fill="red")
+
+rlang::last_error()
 
 ggsave("analysis_plots/Bosiko/Bosiko_new_leaf.pdf")
 
