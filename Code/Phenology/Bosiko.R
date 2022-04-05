@@ -55,7 +55,6 @@ subset_dat <- subset(weather_total, year %in% c(2020,2021))
 table(subset_dat$year)
 
 
-
 # find mean monthly rainfall for 2020 and 2021 and total
 mean_dat <- weather_total %>% group_by(month, year) %>% 
   summarize(mean_monthly = mean(rain_mm, na.rm=T))
