@@ -11,6 +11,7 @@ library(openxlsx)
 library(readr)
 library(readxl)
 
+
 merged_dat = read_xlsx("merged_data/Pheno_Bouamir_Tree_merged.xlsx")
 table(merged_dat$Baka_name)
 Bosiko <- subset(merged_dat, Baka_name=="Bosiko")
