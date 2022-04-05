@@ -87,30 +87,17 @@ mean_monthly_dat
 
 
 ggplot() +
-geom_bar(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean, x=month), 
+geom_bar(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean * 2, x=month), 
          position="dodge", stat="identity") + 
 geom_line(data=subset_dat, aes(x=month, y=mean_monthly, group = year, linetype = year))+ 
 geom_line(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year), color = "red")+
-geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
-scale_y_continuous("leaves_young_mean", sec.axis = sec_axis(~ . *1, name = "rainfall_mm"))+
+# geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
+# geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2)
+scale_y_continuous("leaves_young_mean", breaks=c(0,2,4,6,8), labels=c("0","0-25","25-50","50-75","75-100"), sec.axis = sec_axis(~ . *1, name = "rainfall_mm"))+
 labs(title="Young Leaf Change over Time in Bosiko Tree Species")
 
 
 
-# ggplot() +
- # geom_bar(data = yl_Bosiko_sum_dat, aes(fill=as.factor(year), y=leaves_young_mean*3.333, x=month), 
-  #         position="dodge", stat="identity") + 
-#  geom_line(data=subset_dat, aes(x=month, y=mean_monthly, group = year, linetype = year))+ 
- # geom_line(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year), color = "red")+
-  #geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
-  # geom_line(linetype = "dashed", data=mean_2021, aes(x=month, y=mean_monthly_2021, group =1))+ 
-  #scale_y_continuous("rainfall_mm", sec.axis = sec_axis(~ . *0.3, name = "leaves_young_mean"))+
-  #labs(title="Young Leaf Change over Time in Etenge Tree Species")
-
-ggplot(data=mean_monthly_dat, aes(x=month, y=mean_annual, group = year)) +
-  geom_line(color="red") + geom_smooth(linetype = 0, fill="red")
-
-rlang::last_error()
 
 ggsave("analysis_plots/Bosiko/Bosiko_new_leaf.pdf")
 
