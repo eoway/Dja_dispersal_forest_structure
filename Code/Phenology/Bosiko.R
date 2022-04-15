@@ -107,7 +107,8 @@ ggplot() +
   # geom_smooth(data = mean_monthly_dat, aes(x=month, y=mean_annual, group = year), linetype = 0, fill = "red")+
   geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = mean_monthly-ci_lower, ymax = mean_monthly+ci_upper, group=year), fill="red",alpha = 0.2) + 
   scale_y_continuous("leaves_young_mean", breaks=c(0,2,4,6,8), labels=c("0","0-25","25-50","50-75","75-100"), sec.axis = sec_axis(~ . *1, name = "rainfall_mm"))+
-  labs(title="Young Leaf Change over Time in Bosiko Tree Species")
+  labs(title="Young Leaf Change over Time in Bosiko Tree Species") + 
+  theme_classic()
 
 
 
