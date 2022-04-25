@@ -1,5 +1,6 @@
 setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/ruksan_data")
 getwd()
+setwd("G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Sophia")
 
 library(ggplot2)
 library(stringr)
@@ -11,7 +12,9 @@ library(openxlsx)
 library(readr)
 library(readxl)
 
-merged_dat = read_xlsx("merged_data/Pheno_Bouamir_Tree_merged.xlsx")
+#merged_dat = read_xlsx("merged_data/Pheno_Bouamir_Tree_merged.xlsx")
+merged_dat = read_xlsx("Pheno_Bouamir_Tree_merged.xlsx")
+
 table(merged_dat$Baka_name)
 Epuwe <- subset(merged_dat, Baka_name=="Epuwe")
 dim(merged_dat)
@@ -266,19 +269,31 @@ ggsave("analysis_plots/Epuwe/Epuwe_fruit_ripe.pdf")
 #find avg of pheno metrics between both years (2020 and 2021)
 #young leaves
 yl_Epuwe_avg <- yl_Epuwe_sum_dat %>% group_by(month) %>% 
-  summarize(total_avg = mean(leaves_young_mean, na.rm=T), sd_avg = mean(leaves_young_sd)) 
+  summarize(total_avg = mean(leaves_young_mean, na.rm=T), 
+            sd_avg = mean(leaves_young_sd),
+            n_dat = n(),
+            CI_lower =  total_avg - (1.960 * (sd_avg/sqrt(n_dat))),
+            CI_upper =  total_avg + (1.960 * (sd_avg/sqrt(n_dat))))
 
 yl_Epuwe_avg
 
 #open flowers
 fo_Epuwe_avg <- fo_Epuwe_sum_dat %>% group_by(month) %>% 
-  summarize(total_avg = mean(flower_open_mean, na.rm=T), sd_avg = mean(flower_open_sd)) 
+  summarize(total_avg = mean(flower_open_mean, na.rm=T), 
+            sd_avg = mean(flower_open_sd),
+            n_dat = n(),
+            CI_lower =  total_avg - (1.960 * (sd_avg/sqrt(n_dat))),
+            CI_upper =  total_avg + (1.960 * (sd_avg/sqrt(n_dat)))) 
 
 fo_Epuwe_avg
 
 #unripe fruit
 fu_Epuwe_avg <- fu_Epuwe_sum_dat %>% group_by(month) %>% 
-  summarize(total_avg = mean(fruit_unripe_mean, na.rm=T), sd_avg = mean(fruit_unripe_sd)) 
+  summarize(total_avg = mean(fruit_unripe_mean, na.rm=T), 
+            sd_avg = mean(fruit_unripe_sd),
+            n_dat = n(),
+            CI_lower =  total_avg - (1.960 * (sd_avg/sqrt(n_dat))),
+            CI_upper =  total_avg + (1.960 * (sd_avg/sqrt(n_dat)))) 
 
 fu_Epuwe_avg
 
@@ -295,7 +310,8 @@ Epuwe_combined = rbind(yl_Epuwe_avg, fo_Epuwe_avg, fu_Epuwe_avg)
 Epuwe_combined_plot <- ggplot() +
   geom_bar(data=Epuwe_combined, aes(fill=as.factor(pheno_metric), y=total_avg * 3, x=month), 
            position='dodge', stat='identity') +
-  #geom_errorbar(data = Epuwe_combined, aes(x = month, ymin = total_avg-sd_avg, ymax = total_avg+sd_avg), width = .2 , position = "dodge")+
+  geom_errorbar(data = Epuwe_combined, aes(x = month, ymin = total_avg-CI_lower, ymax = total_avg+CI_upper, group=as.factor(pheno_metric)), 
+                width = .2 , position = "dodge", stat="identity")+
   geom_line(data=mean_monthly_dat_v2, aes(x=month, y=mean_monthly, group = year), color = "#1f78b4") +
   geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = ci_lower, ymax = ci_upper, group=year), 
               fill="#1f78b4",alpha = 0.2) + 
@@ -307,5 +323,22 @@ Epuwe_combined_plot <- ggplot() +
   scale_fill_manual('Phenology Metric', values=c('#ffff99','#bebada','#7fc97f'))
 
 Epuwe_combined_plot
+
+
+ggplot() +
+  geom_bar(data=Epuwe_combined, aes(x=month, y=total_avg * 3, fill=as.factor(pheno_metric)), 
+           stat='identity', position=position_dodge()) +
+  geom_errorbar(data=Epuwe_combined, aes(x=month, group=as.factor(pheno_metric), 
+                                         ymin = total_avg*3-abs(sd_avg*3), ymax = total_avg*3+abs(sd_avg*3)), 
+                width = .2 , position=position_dodge(0.9))+
+  geom_line(data=mean_monthly_dat_v2, aes(x=month, y=mean_monthly, group = year), color = "#1f78b4") +
+  geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = ci_lower, ymax = ci_upper, group=year), 
+              fill="#1f78b4",alpha = 0.2) + 
+  scale_y_continuous("mean % pheno metric intensity", breaks=c(0,3,6,9,12), labels=c("0","0-25","25-50","50-75","75-100"), 
+                     sec.axis = sec_axis(~ . *1, name = "rainfall (mm)")) +
+  scale_x_discrete("month", labels=c("J","F","M","A","M","J","J","A","S","O","N","D")) +
+  labs(title="Combined Phenological Change over Time in Epuwe Tree Species", fill="year") +
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual('Phenology Metric', values=c('#ffff99','#bebada','#7fc97f'))
 
 
