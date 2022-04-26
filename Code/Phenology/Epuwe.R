@@ -326,14 +326,19 @@ Epuwe_combined_plot
 
 
 ggplot() +
-  geom_bar(data=Epuwe_combined, aes(x=month, y=total_avg * 3, fill=as.factor(pheno_metric)), 
-           stat='identity', position=position_dodge()) +
+  # geom_bar(data=Epuwe_combined, aes(x=month, y=total_avg * 3, fill=as.factor(pheno_metric)), 
+  #          stat='identity', position=position_dodge()) +
   geom_errorbar(data=Epuwe_combined, aes(x=month, group=as.factor(pheno_metric), 
                                          ymin = total_avg*3-abs(sd_avg*3), ymax = total_avg*3+abs(sd_avg*3)), 
-                width = .2 , position=position_dodge(0.9))+
+                width = 0.2, position=position_dodge(0.3))+
+  geom_point(data=Epuwe_combined, aes(x=month, y=total_avg * 3, fill=as.factor(pheno_metric)), 
+             pch=21, size=4, position=position_dodge(0.3)) +
+  geom_line(data=Epuwe_combined, aes(x=month, y=total_avg * 3, group=as.factor(pheno_metric)), linetype="dashed",
+            position=position_dodge(0.3)) +
   geom_line(data=mean_monthly_dat_v2, aes(x=month, y=mean_monthly, group = year), color = "#1f78b4") +
   geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = ci_lower, ymax = ci_upper, group=year), 
               fill="#1f78b4",alpha = 0.2) + 
+  geom_hline(yintercept = 0) + 
   scale_y_continuous("mean % pheno metric intensity", breaks=c(0,3,6,9,12), labels=c("0","0-25","25-50","50-75","75-100"), 
                      sec.axis = sec_axis(~ . *1, name = "rainfall (mm)")) +
   scale_x_discrete("month", labels=c("J","F","M","A","M","J","J","A","S","O","N","D")) +
