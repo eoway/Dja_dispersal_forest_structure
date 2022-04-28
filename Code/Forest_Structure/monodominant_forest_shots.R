@@ -83,8 +83,9 @@ plotWFMetrics(gedilevel1b, gedilevel2a, shot_num, rh=c(25, 50, 75, 90))
 # Use level 1B data to create that part of the plot manually 
 level1B <- getLevel1BGeo(gedilevel1b)
 level1BWF <- getLevel1BWF(gedilevel1b, shot_num) #This has everything you need for now (Rxwaveform and elevation)
-#level1BWF$binned_elev <- # get info from Elsa on binning the elevation column
-  
+level1BWF$binned_elev <- cut(level1BWF$elevation, breaks = c(seq(700, 1000, by=5))) # edit the sequence as needed 
+
+
 # then take the average rxwaveform across shots for each bin 
 
 new_dat <- level1BWF_all_shots %>% group_by(binned_elev) %>% summarize(avg_rxwf = mean(rxwaveform, na.rm=T),
