@@ -7,7 +7,7 @@ library(rGEDI); library(ggplot2); library(rgdal); library(sf); library(raster); 
 library(tidyverse) 
 #------------------------------------------------------------------------------------------------#
 
-download.dir="~/Desktop/NASA/Dja_monodominant_shots-2" 
+download.dir="~Users/missa/Downloads/monodominant_shots" 
 
 files.GEDI02_A<-list.files(download.dir,pattern="*GEDI02_A*",recursive = F,full.names=T)
 files.GEDI02_A<-files.GEDI02_A[grepl('.h5$',files.GEDI02_A)]
@@ -17,12 +17,14 @@ files.GEDI01_B<-files.GEDI01_B[grepl('.h5$',files.GEDI01_B)]
 
 # WREF_bb <- c(45.8977, 45.7792, -122.0983, -121.7786)
 
+# This for loop needs to be udpated to include the use of getLevel1BWF(), which returns rxwaveform and elevation
 listof1B <- list()
 for (b in 1:length(files.GEDI01_B)) {
   gedilevel1b <-readLevel1B(level1Bpath = files.GEDI01_B[b])
   level1BGeo   <- getLevel1BGeo(gedilevel1b)
-  #level1bGeo_sub <- subset(level1BGeo, latitude_bin0 < WREF_bb[1] & latitude_bin0 > WREF_bb[2] & longitude_bin0 > WREF_bb[3] & longitude_bin0 < WREF_bb[4])
-  #mbers <- level1BGeo$shot_number   # vector
+  # for loop within the for loop to iterate the following over each shot
+  #  for (i in 1:length(level1BGeo$shot_number))
+  #  level1BWF   <- getLevel1BWF(gedilevel1b, shot_number = level1BGeo$shot_number[i])
   listof1B[[b]] <-level1BGeo
   clean_list1B <- listof1B[!sapply(listof1B, is.null)]
   final_dat1A <- do.call(rbind, clean_list1B)
@@ -69,8 +71,19 @@ dim(level2AM_sub)
 shot_num   <- as.character(level2AM$shot_number[6]) 
 plotWFMetrics(gedilevel1b, gedilevel2a, shot_num, rh=c(25, 50, 75, 90))
 
+# Use level 1B data to create that part of the plot manually 
 level1B <- getLevel1BGeo(gedilevel1b)
-level1BWF <- getLevel1BWF(gedilevel1b, shot_num)
+level1BWF <- getLevel1BWF(gedilevel1b, shot_num) #This has everything you need for now (Rxwaveform and elevation)
+#level1BWF$binned_elev <- # get info from Elsa on binning the elevation column
+
+# then take the average rxwaveform across shots for each bin 
+
+new_dat <- level1BWF_all_shots %>% group_by(binned_elev) %>% summarize(avg_rxwf = mean(rxwaveform, na.rm=T),
+                                                                       sd_rxwf = sd(rxwaveform, na.rm=T),
+                                                                       n_shots = n(),
+                                                                       CI_lower = avg_rxwf - 1.960 * (sd_rxwf / sqrt(n_shots)), 
+                                                                       CI_upper = avg_rxwf + 1.960 * (sd_rxwf / sqrt(n_shots))) 
+
 
 wf_df <- as.data.frame(level1BWF@dt)
 
