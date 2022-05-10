@@ -1,5 +1,10 @@
 setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation")
 getwd()
+#------------------------------------------------------------------------------------------------#
+# Elsa's working directory
+#------------------------------------------------------------------------------------------------#
+setwd("G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Planet")
+#------------------------------------------------------------------------------------------------#
 
 library(raster)
 library(rgdal)
@@ -8,51 +13,64 @@ library(tidyverse)
 
 # load crown data
 crowns <- readOGR(dsn="delineated_crowns.shp", layer="delineated_crowns")
+crowns <- readOGR(dsn=getwd(), layer="delineated_crowns") # EO load
+phen_crowns <- subset(crowns, Point_FID != "NA")
+#crown_test <- subset(crowns, Point_FID == 63)
+final_trees <- subset(crowns, Point_FID %in% c(63, 219, 111))
+head(final_trees)
 
-
-# load mosaic
+# load RGB mosaics
 mosaic_2020_5_27 <- brick("mosaics/2020-05-27_1003_mosaic.tif")
-
+mosaic_2020_5_27 <- brick("2020-05-27_1003_mosaic.tif") # EO load
 
 # plot mosaic data
 plot(mosaic_2020_5_27) # plot each layer (n=4) separately
 plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin") # plot a composite of multiple bands
 
+
+# load EVI mosaics (each image is one date from the year 2021)
+# you'll stack all dates to get multiple dates from 2021, roughly 1-2 per month
+# load every single file in the path directory that's a tif file (all your EVI mosaic images) - call it rastlist
+rastlist <- list.files(path = "/path/to/wd", pattern='.TIF$',all.files=TRUE, full.names=FALSE)
+# stack every file from rastlist 
+evi_stack <- stack(rastlist)
+
+
 # look at projection and crs (coordinate reference system)
-projection(crowns)
-crs(crowns) #longlat / longitude latitude 
+projection(final_trees)
+crs(final_trees) #longlat / longitude latitude 
 
 projection(mosaic_2020_5_27)
 crs(mosaic_2020_5_27) # UTM Zone 33
 
-# set crowns scr to be same as mosaic
-new_crs <- crs(mosaic_2020_5_27)
-crownsUTM <- spTransform(crowns, CRS=new_crs)
-projection(crownsUTM) #make sure the new crowns projection is now UTM
+# set final_trees crs to be same as raster data (mosaic)
+new_crs <- crs(mosaic_2020_5_27) # could replace mosaic_2020_5_27 with EVI data
+final_treesUTM <- spTransform(final_trees, CRS=new_crs)
+projection(final_treesUTM) #make sure the new final_trees projection is now UTM
 
-#set IDs for crowns
-crownsUTM$CID <- seq(1:length(crowns$Point_FID))
+#set IDs for final_trees
+final_treesUTM$CID <- seq(1:length(final_trees$Point_FID))
 
 # plot 
-plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", ext=crownsUTM)
-plot(crownsUTM, border="black", add=T)
+plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", ext=final_treesUTM)
+plot(final_treesUTM, border="white", lwd=3, add=T)
 
-# subset to just five crowns (crowns 10-15) and look at those
-crownsUTM_sub <- crownsUTM[10:15,] 
-plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", ext=crownsUTM_sub)
-plot(crownsUTM, border="black", add=T)
+# # subset to just five final_trees (final_trees 10-15) and look at those
+# crownsUTM_sub <- crownsUTM[10:15,] 
+# plotRGB(mosaic_2020_5_27, r=4,g=2,b=1, stretch = "lin", ext=crownsUTM_sub)
+# plot(crownsUTM, border="black", add=T)
 
 # examine data
 res(mosaic_2020_5_27)
-head(crownsUTM)
-dim(crownsUTM)
+head(final_treesUTM)
+dim(final_treesUTM)
 
 
 # extract crown info for each band separately (this takes a minute)
-mosaic_crowns_b1_1 <- raster::extract(mosaic_2020_5_27[[1]], crownsUTM)
-mosaic_crowns_b2_1 <- raster::extract(mosaic_2020_5_27[[2]], crownsUTM)
-mosaic_crowns_b3_1 <- raster::extract(mosaic_2020_5_27[[3]], crownsUTM)
-mosaic_crowns_b4_1 <- raster::extract(mosaic_2020_5_27[[4]], crownsUTM)
+mosaic_crowns_b1_1 <- raster::extract(mosaic_2020_5_27[[1]], final_treesUTM) #B
+mosaic_crowns_b2_1 <- raster::extract(mosaic_2020_5_27[[2]], final_treesUTM) #G
+mosaic_crowns_b3_1 <- raster::extract(mosaic_2020_5_27[[3]], final_treesUTM) #R
+mosaic_crowns_b4_1 <- raster::extract(mosaic_2020_5_27[[4]], final_treesUTM) #NIR
 class(mosaic_crowns_b1_1) #object of class list - need to convert to data frame
 
 # first, examine list
@@ -77,6 +95,7 @@ mosaic_crowns_b1_1_df <- data.frame(lapply(mosaic_crowns_b1_1, "length<-", max(l
 # rename the columns
 dim(mosaic_crowns_b1_1_df)
 colnames(mosaic_crowns_b1_1_df) <- paste0("Crown_",1:ncol(mosaic_crowns_b1_1_df))
+colnames(mosaic_crowns_b1_1_df) <- paste0("Crown_",c(63, 219, 111))
 head(mosaic_crowns_b1_1_df)
 dim(mosaic_crowns_b1_1_df)
 summary(mosaic_crowns_b1_1_df) # notice the different number of NAs for each ROI; each column is 595 rows, but not all polygons had 595 pixels within them; NAs used to fill in the No Data rows 
@@ -116,12 +135,12 @@ head(mosaic_crowns_all_1)
 
 # use summarize() to summarize all pixels within each ROI
 Crown_dat_1 <- mosaic_crowns_all_1 %>% group_by(Crown) %>% summarize(n=n(),
-                                                                 n_NAs     = sum(is.na(B1)),
-                                                                 n_pixels  = n-n_NAs,
-                                                                 mean_B1 = mean(B1, na.rm=T),
-                                                                 mean_B2 = mean(B2, na.rm=T),
-                                                                 mean_B3 = mean(B3, na.rm=T),
-                                                                 mean_B4 = mean(B4, na.rm=T))
+                                                                     n_NAs     = sum(is.na(B1)),
+                                                                     n_pixels  = n-n_NAs,
+                                                                     mean_B1 = mean(B1, na.rm=T),
+                                                                     mean_B2 = mean(B2, na.rm=T),
+                                                                     mean_B3 = mean(B3, na.rm=T),
+                                                                     mean_B4 = mean(B4, na.rm=T))
 Crown_dat_1
 Crown_dat_1$date = "2020-05-27"
 
@@ -129,6 +148,39 @@ Crown_dat_1$date = "2020-05-27"
 Crown_dat_1$n_pixels
 summary(Crown_dat_1) # same number of pixels, but in different order because Crown_dat_1 lists 1, then 10...
 #------------------------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------------------------#
+# summarize again to get single EVI value per crown per month
+#------------------------------------------------------------------------------------------------#
+Crown_dat_reformat <- gather(Crown_dat_1, "band", "EVI", -c(Crown, n, n_NAs, n_pixels)) # where columns 5:8 are your band values - in this case bands, will be dates
+head(Crown_dat_reformat)
+#Crown_dat_reformat$month <- # pull month value from date value
+
+monthly_dat <- Crown_dat_reformat %>% group_by(month) %>% summarize(n=n(), 
+                                                             mean_EVI = mean(EVI, na.rm=T))
+
+# from here plot (ggplot - geom_point and geom_line): 
+# y-axis = EVI
+# x-axis = month
+# group / color / fill = Crown 
+
+# can add precip data to this
+#------------------------------------------------------------------------------------------------#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #------------------------------------------------------------------------------------------------#
 # repeat with new mosaic
