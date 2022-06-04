@@ -1,10 +1,15 @@
 setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/")
 getwd()
 
+
+library(tools)
 library(raster)
 library(rgdal)
-library(tidyverse)
-
+library(dplyr)
+library(stringr)
+library(readr)
+library(tidyr)
+library(ggplot2)
 
 # load crown data
 crowns <- readOGR(dsn="delineated_crowns.shp", layer="delineated_crowns")
@@ -12,117 +17,222 @@ phen_crowns <- subset(crowns, Point_FID != "NA") # this gets rid of crowns not a
 final_trees <- subset(crowns, Point_FID %in% c(63, 219, 203)) # these are the top 3 trees by dbh with sufficient related ground data
 head(final_trees)
 
-# load ndvi mosaics (each image is one date from the year 2021)
-# stack all dates to get multiple dates from 2021
-# load every single file in the path directory that's a tif file (all your ndvi mosaic images) - call it rastlist
-rastlist <- list.files(path = "NDVI", pattern='.tif$',all.files=TRUE, full.names=FALSE)
+# load ndvi files for the same tile and convert it into raster object.
+rastlist <- list.files(path = "04_files", pattern='.tif$',all.files=TRUE, full.names=FALSE)
 head(rastlist)
 
-# stack every file from rastlist 
-setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/NDVI/") #set path for images to be stacked
-ndvi_stack <- stack(rastlist) # this doesn't work because not all images are same extent
 
 
-# testing it out with 1 image from 2021-03-27
-setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/") #reset working directory
-ndvi_2021_03_27 = stack("NDVI/4311133_3340504_2021-03-27_2414_ndvi.tif")
+sel_tile_to_raster <-function(rast){
+  rast_tile_num <-  strsplit(rast,split="_") 
+  if (rast_tile_num[[1]][2] == 3340504){
+    rast <- raster(rast)
+  }
+}
+
+?lapply
+setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/04_files/")
+tile_img_list <-lapply(rastlist, raster)
+
+#tile_img_list= tile_img_list[-which(sapply(tile_img_list, is.null))]
 
 
-# set final_trees crs to be same as raster data
-new_crs <- crs(ndvi_2021_03_27)
+
+new_crs <- crs(tile_img_list[[1]])
 final_treesUTM <- spTransform(final_trees, CRS=new_crs)
-projection(final_treesUTM) #make sure the new final_trees projection is now UTM
+projection(final_treesUTM) 
+final_treesUTM$CID <- seq(1:length(final_trees$Point_FID))#set IDs for final_trees
 
-#set IDs for final_trees
-final_treesUTM$CID <- seq(1:length(final_trees$Point_FID))
+len = length(tile_img_list)
 
-# plot raster with crowns overlayed
-plot(ndvi_2021_03_27[[1]], ext=final_treesUTM)
+num_list <-c(1:len)
+
+analysis <-function(i){
+
+  img <-tile_img_list[[i]]
+    
+  #plot(img, ext=final_treesUTM)
+  #plot(final_treesUTM, border="black", add = T)
+
+  ndvi_file <- raster::extract(img, final_treesUTM)
+  crown_1 <-ndvi_file[[1]]
+  crown_2 <-ndvi_file[[2]]
+  crown_3 <- ndvi_file[[3]]
+
+
+  mean_ndvi_crown_1 <- mean(ndvi_file[[1]], na.rm =T)
+  mean_ndvi_crown_2 <- mean(ndvi_file[[2]], na.rm =T)
+  mean_ndvi_crown_3 <- mean(ndvi_file[[3]], na.rm =T)
+  
+
+    
+  filename <-strsplit(names(img),split="_")
+  date <-filename [[1]][3]
+
+  
+  output_list = c(date, mean_ndvi_crown_1, mean_ndvi_crown_2, mean_ndvi_crown_3)
+    
+}   
+
+
+output <-lapply(num_list, analysis)
+
+df <- data.frame(matrix(unlist(output), nrow=length(output), byrow=TRUE))
+df
+
+#rename columns
+df = rename(df, "date"="X1")
+df = rename(df, "crown_63"="X2", "crown_219"="X3", "crown_203"="X4")
+
+
+plot(tile_img_list[[21]], ext=final_treesUTM)
 plot(final_treesUTM, border="black", add = T)
 
+#find monthly mean
+#add month column to df
+df$month <- str_sub(df$date,6,7)
 
-# extract crown info for each date separately
-ndvi_03_27 <- raster::extract(ndvi_2021_03_27[[1]], final_treesUTM)
-#ndvi_04_17 <- raster::extract(ndvi_2021_04_17[[1]], final_treesUTM) #this is an example of what I'd do if all the images stacked
-class(ndvi_03_27) #object of class list - need to convert to data frame
+??str_sub
 
+#find mean ndvi for each crown
+#convert values from character to numeric
+df$crown_63 = as.numeric(df$crown_63)
+df$crown_219 = as.numeric(df$crown_219)
+df$crown_203 = as.numeric(df$crown_203)
 
-# first, examine list
-str(ndvi_03_27) # list of 3 objects (matrices)
-summary(ndvi_03_27) # summarizes each of the 3 objects (length, class, and mode)
-# in the summary output, length tells you how many elements are in each list
-# notice each object/vector within the list is of a different length 
-# each object/vector consists of pixel values extracted for each crown (n=3)
-
-#------------------------------------------------------------------------------------------------#
-# convert list to data frame
-#------------------------------------------------------------------------------------------------#
-# the code below converts each list object (n=3) to a column and sets the number of rows to the maximum list object/vector length (50)
-ndvi_03_27_df <- data.frame(lapply(ndvi_03_27, "length<-", max(lengths(ndvi_03_27))))
-# rename the columns
-dim(ndvi_03_27_df)
-colnames(ndvi_03_27_df) <- paste0("Crown_",1:ncol(ndvi_03_27_df))
-colnames(ndvi_03_27_df) <- paste0("Crown_",c(63, 219, 203))
-head(ndvi_03_27_df)
-dim(ndvi_03_27_df)
-summary(ndvi_03_27_df) # notice the different number of NAs for each ROI; each column is 50 rows, but not all polygons had 50 pixels within them; NAs used to fill in the No Data rows 
-
-# do the same for the extracted lists from other dates 
-#ndvi_04_17_df <- data.frame(lapply(ndvi_04_17, "length<-", max(lengths(ndvi_04_17)))) not ready to do yet but example of how it would continue with new dates
-#colnames(ndvi_04_17_df) <- paste0("Crown_",1:ncol(ndvi_04_17_df))
+ndvi_mean_dat <- df %>% group_by(month) %>% 
+  summarize(mean_63 = mean(crown_63, na.rm=T),
+            mean_219 = mean(crown_219, na.rm=T),
+            mean_203 = mean(crown_203, na.rm=T),
+            n_dat = n())
 
 
-#------------------------------------------------------------------------------------------------#
-# use dplyr::summarize to calculate the mean band value for each crown
-#------------------------------------------------------------------------------------------------#
-# use gather() to reformat data to use summarize function
-ndvi_03_27_df_long <- gather(ndvi_03_27_df, "Crown", "2021-03-27") # i don't think this is right
-head(ndvi_03_27_df_long)
-table(ndvi_03_27_df_long$Crown)
-# the above code converts the data from 'wide' format to 'long' format
-#ndvi_04_17_df_long <- gather(ndvi_04_17_df, "Crown", "2021-03-27") will eventually do for all dates
+### import weather data ###
+setwd("/Users/sophieroberts/Downloads/elsa_lab/crown_delineation/")
+
+weather_total <- read_csv("ruksan_data/weather_data/24Oct2017-17Fev2022_Bouamir_Weather_data.csv")
+?read.csv
+head(weather_total)
+
+weather_total <- weather_total[,c(1:6)]
+
+head(weather_total)
+
+# create year column
+weather_total$year <- str_sub(weather_total$date,1,4)
+
+head(weather_total)
+
+# create month column
+weather_total$month <- str_sub(weather_total$date,6,7)
+
+head(weather_total)
+
+# subset to 2021
+subset_dat <- subset(weather_total, year %in% c(2021))
+table(subset_dat$year)
 
 
-#------------------------------------------------------------------------------------------------#
-# Combine all data into a single data frame
-#------------------------------------------------------------------------------------------------#
-#ndvi_crowns_all <- cbind(ndvi_03_27_df_long, ndvi_04_17_df_long...) # not ready to do yet bc don't have all dates
-head(ndvi_crowns_all)
-# colnames(ndvi_crowns_all) <- c("Crown","2021-03-27","2021-04-17") will do with all dates
-head(ndvi_crowns_all)
+# find mean monthly rainfall for 2021 and total
+mean_dat <- weather_total %>% group_by(month, year) %>% 
+  summarize(mean_monthly = mean(rain_mm, na.rm=T),
+            sd_monthly = sd(rain_mm, na.rm=T),
+            n_dat = n())
 
-# use summarize() to summarize all pixels within each ROI
-Crown_dat_1 <- ndvi_03_27_df %>% group_by(Crown) %>% summarize(n=n(),
-                                                               n_NAs     = sum(is.na(B1)),
-                                                               n_pixels  = n-n_NAs,
-                                                               mean_NDVI = mean(B1, na.rm=T))
+head(mean_dat)
 
-colMeans(ndvi_03_27_df, na.rm=TRUE)
+subset_dat <- subset(mean_dat, year %in% c(2021))
 
+table(subset_dat$year)
 
-Crown_dat_1
-Crown_dat_1$date = "2020-03-27"
+head(mean_dat)
 
-# check number of pixels in summarized data against Crown_dat_1
-Crown_dat_1$n_pixels
-summary(Crown_dat_1) # same number of pixels, but in different order because Crown_dat_1 lists 1, then 10...
-#------------------------------------------------------------------------------------------------#
+mean_monthly_dat <- mean_dat %>% group_by(month) %>% 
+  summarize(mean_annual = mean(mean_monthly, na.rm=T))
+
+mean_monthly_dat_v2 <- weather_total %>% group_by(month) %>% 
+  summarize(mean_monthly = mean(rain_mm, na.rm=T),
+            sd_monthly = sd(rain_mm, na.rm=T),
+            n_dat = n())
 
 
-#------------------------------------------------------------------------------------------------#
-# summarize again to get single ndvi value per crown per month
-#------------------------------------------------------------------------------------------------#
-Crown_dat_reformat <- gather(Crown_dat_1, "band", "ndvi", -c(Crown, n, n_NAs, n_pixels)) # where columns 5:8 are your band values - in this case bands, will be dates
-head(Crown_dat_reformat)
-#Crown_dat_reformat$month <- # pull month value from date value
+head(mean_monthly_dat_v2)
+mean_monthly_dat_v2$year <- rep("2017-2022", length(mean_monthly_dat_v2$month))
+head(mean_monthly_dat_v2)
 
-monthly_dat <- Crown_dat_reformat %>% group_by(month) %>% summarize(n=n(), 
-                                                                    mean_ndvi = mean(ndvi, na.rm=T))
+mean_monthly_dat_v2
 
-# from here plot (ggplot - geom_point and geom_line): 
-# y-axis = ndvi
-# x-axis = month
-# group / color / fill = Crown 
+# calculate confidence interval for X? (precip data)
+# 95th confidence interval = the mean +- 1.960 * (standard deviation / square root of the sample size) 
+mean_monthly_dat_v2$ci_lower <- mean_monthly_dat_v2$mean_monthly - 
+  (1.960 * (mean_monthly_dat_v2$sd_monthly) / sqrt(mean_monthly_dat_v2$n_dat))
+mean_monthly_dat_v2$ci_upper <- mean_monthly_dat_v2$mean_monthly + 
+  (1.960 * (mean_monthly_dat_v2$sd_monthly) / sqrt(mean_monthly_dat_v2$n_dat))
+head(mean_monthly_dat_v2)
 
-# can add precip data to this
-#------------------------------------------------------------------------------------------------#
+##----------------------------------------------Plot--Data--Below------------------------------------------------------------------------------
+
+ndvi_mean_dat_long <- gather(ndvi_mean_dat, "species", "ndvi", -c(month, n_dat))
+
+
+
+ndvi_plot <- ggplot() +
+  geom_point(data=ndvi_mean_dat_long, aes(x=month, y=ndvi * 12, color=species),
+             size=4) +
+  geom_line(data=ndvi_mean_dat_long, aes(x=month, y=ndvi * 12, color = species, group = species), linetype="dashed") +
+  geom_line(data=mean_monthly_dat_v2, aes(x=month, y=mean_monthly, group = year), color = "#1f78b4") +
+  geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = ci_lower, ymax = ci_upper, group=year), 
+              fill="#1f78b4",alpha = 0.2) +
+  geom_hline(yintercept = 0) + 
+  scale_y_continuous("mean NDVI", breaks=c(0,1.2,2.4,3.6,4.8,6,7.2,8.4, 9.6, 10.8, 12), labels=c("0","0.1","0.2","0.3","0.4","0.5","0.6","0.7", "0.8", "0.9","1"), 
+                     sec.axis = sec_axis(~ . *1, name = "rainfall (mm)")) +
+  scale_x_discrete("month", labels=c("J","F","M","A","M","J","J","A","S","O","N","D")) +
+  labs(title="NDVI Over Time in 3 Different Tree Species") +
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_color_manual('Tree Species', values = c("#268E81", "#B04C01", "#5636A0"), labels = c("Mabe", "Sene", "Etenge")) +
+  theme(axis.text=element_text(size=12), 
+        axis.title=element_text(size=16), 
+        plot.title=element_text(size=18), 
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=18))
+
+
+ndvi_plot
+
+# ndvi <- ggplot() +
+#   geom_point(data=ndvi_mean_dat, aes(x=month, y=ndvi * 12, color=species),
+#              size=4) +
+#   #geom_point(data=ndvi_mean_dat, aes(x=month, y=mean_219 * 12, color="#d95f02"),
+#              #size=4) +
+#   #geom_point(data=ndvi_mean_dat, aes(x=month, y=mean_203 * 12, color="#7570b3"),
+#              #size=4) +
+#   geom_line(data=ndvi_mean_dat, aes(x=month, y=mean_63 * 12, group=1), linetype="dashed") +
+#   geom_line(data=ndvi_mean_dat, aes(x=month, y=mean_219 * 12, group=1), linetype="dashed") +
+#   geom_line(data=ndvi_mean_dat, aes(x=month, y=mean_203 * 12, group=1), linetype="dashed") + 
+#   geom_line(data=mean_monthly_dat_v2, aes(x=month, y=mean_monthly, group = year), color = "#1f78b4") +
+#   geom_ribbon(data = mean_monthly_dat_v2, aes(x=month, ymin = ci_lower, ymax = ci_upper, group=year), 
+#               fill="#1f78b4",alpha = 0.2) +
+#   geom_hline(yintercept = 0) + 
+#   scale_y_continuous("mean NDVI", breaks=c(0,1.2,2.4,3.6,4.8,6,7.2,8.4, 9.6, 10.8, 12), labels=c("0","0.1","0.2","0.3","0.4","0.5","0.6","0.7", "0.8", "0.9","1"), 
+#                      sec.axis = sec_axis(~ . *1, name = "rainfall (mm)")) +
+#   scale_x_discrete("month", labels=c("J","F","M","A","M","J","J","A","S","O","N","D")) +
+#   labs(title="NDVI Over Time in 3 Different Tree Species") +
+#   theme_classic() + theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+#   scale_fill_manual('Tree Species', labels = c("Mabe", "Sene", "Etenge")) +
+#   theme(axis.text=element_text(size=12), 
+#         axis.title=element_text(size=15), 
+#         plot.title=element_text(size=15), 
+#         legend.text=element_text(size=12),
+#         legend.title=element_text(size=12))
+#   
+#   
+# 
+# 
+# ndvi
+
+ggsave("ndvi/top_3.pdf")
+  
+
+
+
+
