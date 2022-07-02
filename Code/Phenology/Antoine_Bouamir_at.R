@@ -2,8 +2,8 @@ getwd()
 #------------------------------------------------------------------------------------------------#
 # set working directory
 #------------------------------------------------------------------------------------------------#
-#setwd("G:/My Drive/Projects/NASA_Biodiversity_20-BIODIV20-0044/Box/Data/Remote_Sensing_Data/Planet")
 setwd("C:/Users/elsao/Desktop/Cameroon_Data")
+# Antoine: make sure you update the working directory above and change the file paths below
 #------------------------------------------------------------------------------------------------#
 
 library(raster)
