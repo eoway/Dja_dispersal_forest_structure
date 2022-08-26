@@ -215,3 +215,16 @@ ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
   labs(x="Year", y="Change in Tree Cover (sq km)"),
   NULL
 )
+
+# EO's version here
+table(combined_df$type) # look at the ordering of products here; make sure it's in the correct order: JRC Def, JRC Deg, GFC, RADD
+# If GFC is before RADD, then try just reording in the plot below, by manually reording where it says "levels" in scale_fill_manual
+levels(combined_df$type) 
+
+ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
+  geom_bar(position="dodge", stat="identity", width = 1), theme_classic(),
+  theme(legend.position = "bottom", legend.title = element_blank()),
+  scale_fill_manual(levels=c("deforestation","degradation","treeloss","disturbance"), values=c("#FF9999","#CC6666","#66CC99","#9999FF"), labels=c("JRC Deforestation", "JRC Degradation", "GFC Tree Loss", "RADD Disturbance")), 
+  labs(x="Year", y="Change in Tree Cover (sq km)"),
+  NULL
+)
