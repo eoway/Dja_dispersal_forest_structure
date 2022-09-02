@@ -192,7 +192,11 @@ grouped_RADD <- grouped_RADD %>% add_row(year = 2001:2018, n_pixels = 0,
                          source = "RADD",    
                          type = "disturbance")  
 
-combined_df <- rbind(grouped_Defx,grouped_Degx ,grouped_RADD, grouped_GFC) 
+combined_df <- rbind(grouped_Defx,grouped_Degx ,grouped_RADD, grouped_GFC)
+
+dx <-  rbind(grouped_RADD, grouped_Defx, grouped_Degx)
+
+da <-  rbind(grouped_Defx, grouped_Degx)
 
 write.csv(combined_df,"//slcsvr3.nslc.ucla.edu/Students/kdutko2001/Downloads/combined_dfNEW.csv")
 
@@ -200,13 +204,7 @@ combined <- read.csv("combined_df.csv")
 
 combined_df<-combined_df[!(combined_df$n_pixels== 268236),]
 
-ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
-  geom_bar(position="dodge", stat="identity", width = 1.0),
-  theme(legend.position = "bottom", legend.title = element_blank()),
-  scale_fill_manual(values=c("#FF9999","#CC6666","#9999CC","#66CC99"), labels=c("JRC Deforestation", "JRC Degradation", "RADD Disturbance", "GFC Tree loss")), 
-  labs(x="Year", y="Change in Tree Cover (km2)"),
-  NULL
-)
+grouped_RADD<-grouped_RADD[!(grouped_RADD$n_pixels== 268236),]
 
 ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
   geom_bar(position="dodge", stat="identity", width = 1), theme_classic(),
@@ -216,15 +214,22 @@ ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
   NULL
 )
 
-# EO's version here
-table(combined_df$type) # look at the ordering of products here; make sure it's in the correct order: JRC Def, JRC Deg, GFC, RADD
-# If GFC is before RADD, then try just reording in the plot below, by manually reording where it says "levels" in scale_fill_manual
-levels(combined_df$type) 
-
-ggplot(combined_df, aes(fill=type, y=defor_km2, x=year)) + list(
-  geom_bar(position="dodge", stat="identity", width = 1), theme_classic(),
+ggplot(dx, aes(fill=type, y=defor_km2, x=year)) + list(
+  geom_bar(stat="identity", width = 1), theme_classic(),
   theme(legend.position = "bottom", legend.title = element_blank()),
-  scale_fill_manual(levels=c("deforestation","degradation","treeloss","disturbance"), values=c("#FF9999","#CC6666","#66CC99","#9999FF"), labels=c("JRC Deforestation", "JRC Degradation", "GFC Tree Loss", "RADD Disturbance")), 
+  scale_fill_manual(values=c("#FF9999","#CC6666","#9999FF","#66CC99"), labels=c("JRC Deforestation", "JRC Degradation", "RADD Disturbance", "GFC Tree Loss")), 
   labs(x="Year", y="Change in Tree Cover (sq km)"),
   NULL
 )
+
+wx <- ggplot(da, aes(fill=factor(type,levels=c("degradation","deforestation")), y=defor_km2, x=year)) + list(
+  geom_bar(stat="identity"), theme_classic(), 
+  theme(legend.position = "bottom", legend.title = element_blank()),
+  scale_fill_manual(values=c("#CC6666","#FF9999","#9999FF","#66CC99"), labels=c("JRC Deforestation", "JRC Degradation", "RADD Disturbance")), 
+  labs(x="Year", y="Change in Tree Cover (km2)"),
+  NULL
+)
+wx
+
+wx + geom_line(data = grouped_GFC, aes(y=defor_km2, x=year), color="#339900",size=1) +
+  geom_bar(data = grouped_RADD, stat="identity",width = 0.8,color="black",fill=NA,size=1)
